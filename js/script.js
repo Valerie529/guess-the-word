@@ -7,20 +7,31 @@ const remainingGuessesSpan = document.querySelector(".remaining span");
 const message = document.querySelector(".message");
 const playAgainButton = document.querySelector(".play-again");
 
-const word = "magnolia";
+let word = "magnolia";
 const guessedLetters = [];
+let remainingGuesses = 8;
 
-// Display our symbols as placeholders for the chosen word's letters
+const getWord = async function () {
+  const response = await fetch("https://gist.githubusercontent.com/skillcrush-curriculum/7061f1d4d3d5bfe47efbfbcfe42bf57e/raw/5ffc447694486e7dea686f34a6c085ae371b43fe/words.txt");
+  const words = await response.text();
+  const wordArray = words.split("\n");
+  const randomIndex = Math.floor(Math.random() * wordArray.length);
+  word = wordArray[randomIndex].trim();
+  placeholder(word);
+};
+
+// Fire off the game
+getWord();
+
+// Display symbols as placeholders for the word's letters
 const placeholder = function (word) {
   const placeholderLetters = [];
   for (const letter of word) {
-    console.log(letter);
+    // console.log(letter);
     placeholderLetters.push("●");
   }
   wordInProgress.innerText = placeholderLetters.join("");
 };
-
-placeholder(word);
 
 guessLetterButton.addEventListener("click", function (e) {
   e.preventDefault();
@@ -32,7 +43,7 @@ guessLetterButton.addEventListener("click", function (e) {
   const goodGuess = validateInput(guess);
 
   if (goodGuess) {
-    // We've got a letter! Let's guess!
+    // Make a guess
     makeGuess(guess);
   }
   letterInput.value = "";
@@ -41,12 +52,16 @@ guessLetterButton.addEventListener("click", function (e) {
 const validateInput = function (input) {
   const acceptedLetter = /[a-zA-Z]/;
   if (input.length === 0) {
+    // Is the input empty?
     message.innerText = "Please enter a letter.";
   } else if (input.length > 1) {
+    // More than one letter?
     message.innerText = "Please enter a single letter.";
   } else if (!input.match(acceptedLetter)) {
+    // Nothing resembling a letter?
     message.innerText = "Please enter a letter from A to Z.";
   } else {
+    // Got a legit letter
     return input;
   }
 };
@@ -54,17 +69,18 @@ const validateInput = function (input) {
 const makeGuess = function (guess) {
   guess = guess.toUpperCase();
   if (guessedLetters.includes(guess)) {
-    message.innerText = "You have already guessed that letter. Try again!";
+    message.innerText = "You have already guessed that letter. Try again.";
   } else {
     guessedLetters.push(guess);
     console.log(guessedLetters);
+    updateGuessesRemaining(guess);
     showGuessedLetters();
     updateWordInProgress(guessedLetters);
   }
 };
 
 const showGuessedLetters = function () {
-  // Clear the list
+  // Clear the list first
   guessedLettersElement.innerHTML = "";
   for (const letter of guessedLetters) {
     const li = document.createElement("li");
@@ -87,6 +103,25 @@ const updateWordInProgress = function (guessedLetters) {
   // console.log(revealWord);
   wordInProgress.innerText = revealWord.join("");
   checkIfWin();
+};
+
+const updateGuessesRemaining = function (guess) {
+  const upperWord = word.toUpperCase();
+  if (!upperWord.includes(guess)) {
+    // lose a guess
+    message.innerText = `Sorry, the word has no ${guess}.`;
+    remainingGuesses -= 1;
+  } else {
+    message.innerText = `Good guess! The word has the letter ${guess}.`;
+  }
+
+  if (remainingGuesses === 0) {
+    message.innerHTML = `Game over! The word was <span class="highlight">${word}</span>.`;
+  } else if (remainingGuesses === 1) {
+    remainingGuessesSpan.innerText = `${remainingGuesses} guess`;
+  } else {
+    remainingGuessesSpan.innerText = `${remainingGuesses} guesses`;
+  }
 };
 
 const checkIfWin = function () {
